@@ -674,13 +674,133 @@ input { font-family: inherit; }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* No preview */
+
+.no-preview {
+  margin-top: 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 0.82rem;
+  color: var(--text-3);
+}
+.search-spotify {
+  color: var(--green);
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+.search-spotify:hover { opacity: 0.7; }
+
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 
-@media (max-width: 560px) {
-  .nav { padding: 16px 20px; }
-  .form { padding: 20px; }
-  .check-grid { grid-template-columns: 1fr 1fr; }
-  .filters-row { flex-direction: column; }
-  .hero { padding: 48px 0 32px; }
-  .analysis-inner { flex-direction: column; }
+@media (max-width: 640px) {
+
+  /* Nav */
+  .nav {
+    padding: 14px 16px;
+  }
+  .logo { font-size: 1.05rem; }
+  .nav-badge { font-size: 0.65rem; padding: 3px 9px; }
+
+  /* Main */
+  .main { padding: 0 14px 60px; }
+
+  /* Hero */
+  .hero { padding: 36px 0 28px; }
+  .hero-title { font-size: clamp(1.7rem, 8vw, 2.4rem); }
+  .hero-sub { font-size: 0.9rem; }
+
+  /* Form */
+  .form {
+    padding: 18px 16px;
+    gap: 18px;
+    border-radius: 14px;
+  }
+
+  /* Pill toggle — stretch full width on mobile */
+  .pill-toggle {
+    display: flex;
+    width: 100%;
+  }
+  .pill-btn {
+    flex: 1;
+    text-align: center;
+    padding: 8px 10px;
+    font-size: 0.8rem;
+  }
+
+  /* Checkboxes — 2 cols is fine but tighten padding */
+  .check-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .check-card { padding: 10px 10px; gap: 7px; }
+  .check-label { font-size: 0.8rem; }
+  .check-icon { font-size: 0.9rem; width: 16px; }
+
+  /* Filters */
+  .filters-row { flex-direction: column; gap: 14px; }
+  .filter-half { min-width: unset; }
+
+  /* Submit button */
+  .submit-btn { font-size: 0.85rem; padding: 13px 20px; }
+
+  /* Analysis card */
+  .analysis-card { padding: 18px 16px; }
+  .analysis-inner {
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .art, .art-placeholder { width: 64px; height: 64px; }
+  .analysis-title { font-size: 1.1rem; }
+
+  /* Recs header */
+  .recs-header {
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 14px;
+  }
+  .recs-title { font-size: 1.2rem; }
+
+  /* Song cards */
+  .song-card { padding: 16px 14px; }
+  .card-top {
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .card-num {
+    font-size: 1.4rem;
+    width: 30px;
+  }
+  .card-title { font-size: 0.92rem; }
+  .card-artist { font-size: 0.8rem; }
+  .card-spotify-btn {
+    margin-left: auto;
+    font-size: 0.72rem;
+    padding: 5px 11px;
+  }
+  .card-reason { font-size: 0.84rem; }
+
+  /* Tags */
+  .tag { font-size: 0.68rem; padding: 3px 10px; }
+
+  /* Embed */
+  .embed { height: 80px; }
+
+  /* Reset button */
+  .reset-wrap { margin-top: 32px; }
+  .reset-btn { font-size: 0.8rem; padding: 10px 20px; }
+
+  /* Loading */
+  .loading-state { padding: 48px 0; }
+
+  /* Footer */
+  .footer { padding: 24px 16px; font-size: 0.68rem; }
+
+  /* Orbs — scale down so they don't dominate mobile */
+  .orb-1 { width: 300px; height: 300px; top: -100px; left: -100px; }
+  .orb-2 { width: 250px; height: 250px; bottom: -80px; right: -80px; }
 }

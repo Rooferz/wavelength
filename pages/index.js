@@ -321,7 +321,7 @@ export default function Home() {
                       ))}
                     </div>
 
-                    {s.spotify?.embedUrl && (
+                    {s.spotify?.embedUrl ? (
                       <iframe
                         className="embed"
                         src={s.spotify.embedUrl}
@@ -330,6 +330,10 @@ export default function Home() {
                         loading="lazy"
                         title={`${s.title} by ${s.artist}`}
                       />
+                    ) : (
+                      <div className="no-preview">
+                        🎵 Preview not available on Spotify — <a href={`https://open.spotify.com/search/${encodeURIComponent(s.title + ' ' + s.artist)}`} target="_blank" rel="noreferrer" className="search-spotify">Search on Spotify ↗</a>
+                      </div>
                     )}
                   </div>
                 ))}
