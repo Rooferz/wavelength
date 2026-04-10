@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import Head from 'next/head';
 
 const ANALYZE_OPTIONS = [
@@ -17,30 +17,6 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
-  const iframeRefs = useRef([]);
-
-  // Stop other embeds when one starts playing
-  useEffect(() => {
-    function handleMessage(e) {
-      if (e.origin !== 'https://open.spotify.com') return;
-      try {
-        const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-        if (data?.type === 'playback_update' && data?.payload?.isPaused === false) {
-          iframeRefs.current.forEach((iframe) => {
-            if (iframe && iframe.contentWindow !== e.source) {
-              // Reset the iframe src to stop it
-              const src = iframe.src;
-              iframe.src = '';
-              iframe.src = src;
-            }
-          });
-        }
-      } catch {}
-    }
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
   function toggleAnalyze(id) {
     setAnalyzeBy((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
@@ -346,7 +322,6 @@ export default function Home() {
 
                     {s.spotify?.embedUrl ? (
                       <iframe
-                        ref={(el) => (iframeRefs.current[i] = el)}
                         className="embed"
                         src={s.spotify.embedUrl}
                         frameBorder="0"
