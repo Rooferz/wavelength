@@ -1,94 +1,76 @@
 import { useEffect, useState } from 'react';
 import Head from 'next/head';
 
+// Admin page — uses a server-side token check via Authorization header.
+// The ADMIN_SECRET_TOKEN env var is NEVER exposed to the browser (no NEXT_PUBLIC_ prefix).
 export default function Admin() {
   const [searches, setSearches] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [password, setPassword] = useState('');
-  const [authed, setAuthed] = useState(false);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState('');
+  const [token, setToken]       = useState('');
+  const [authed, setAuthed]     = useState(false);
 
-  function handleAuth(e) {
+  async function handleAuth(e) {
     e.preventDefault();
-    if (password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD || password === 'wavelength-admin') {
+    setLoading(true); setError('');
+    try {
+      const r = await fetch('/api/admin-searches', {
+        headers: { Authorization: `Bearer ${token.trim()}` },
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Wrong token');
+      setSearches(d.searches || []);
       setAuthed(true);
-    } else {
-      setError('Wrong password');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   }
 
-  useEffect(() => {
-    if (!authed) return;
-    fetch('/api/admin-searches')
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.error) setError(d.error);
-        else setSearches(d.searches || []);
-      })
-      .catch(() => setError('Failed to load searches'))
-      .finally(() => setLoading(false));
-  }, [authed]);
-
   return (
     <>
-      <Head><title>WAVELENGTH — Admin</title></Head>
-      <div style={{ background: '#070709', minHeight: '100vh', color: '#eee', fontFamily: 'sans-serif', padding: '32px' }}>
-        <h1 style={{ color: '#1DB954', marginBottom: '24px', fontSize: '1.4rem', letterSpacing: '0.1em' }}>
-          WAVELENGTH / Admin
+      <Head>
+        <title>Wavelength Admin</title>
+        <meta name="robots" content="noindex,nofollow" />
+        <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500&display=swap" rel="stylesheet" />
+      </Head>
+      <div style={{ minHeight: '100vh', background: '#0C0A09', color: '#F0E8DF', fontFamily: "'Plus Jakarta Sans', sans-serif", padding: '40px 24px' }}>
+        <h1 style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 800, marginBottom: 32 }}>
+          WAVELENGTH Admin
         </h1>
 
         {!authed ? (
-          <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '320px' }}>
+          <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 400 }}>
             <input
               type="password"
-              placeholder="Admin password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #333', background: '#111', color: '#eee', fontSize: '1rem' }}
+              value={token}
+              onChange={e => setToken(e.target.value)}
+              placeholder="Admin secret token"
+              style={{ background: '#1A1714', border: '1px solid rgba(255,235,210,0.1)', borderRadius: 10, padding: '12px 16px', color: '#F0E8DF', fontSize: '1rem', outline: 'none' }}
+              required
             />
-            {error && <p style={{ color: '#ff6b6b', fontSize: '0.85rem' }}>{error}</p>}
-            <button type="submit" style={{ padding: '10px', borderRadius: '8px', background: '#1DB954', color: '#000', fontWeight: 700, cursor: 'pointer', border: 'none' }}>
-              Enter
+            {error && <p style={{ color: '#ff7070', fontSize: '0.88rem' }}>{error}</p>}
+            <button type="submit" disabled={loading} style={{ background: '#1DB954', color: '#000', border: 'none', borderRadius: 10, padding: '12px', fontWeight: 700, fontFamily: "'Bricolage Grotesque', sans-serif", cursor: 'pointer' }}>
+              {loading ? 'Checking…' : 'Access Dashboard'}
             </button>
           </form>
-        ) : loading ? (
-          <p style={{ color: '#888' }}>Loading searches...</p>
-        ) : error ? (
-          <p style={{ color: '#ff6b6b' }}>{error}</p>
         ) : (
-          <>
-            <p style={{ color: '#888', marginBottom: '20px', fontSize: '0.9rem' }}>
-              {searches.length} total searches
-            </p>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid #222', textAlign: 'left' }}>
-                    {['Date', 'Song', 'Artist', 'Analyze By', 'Genre Mode', 'Language', 'Suggestions'].map((h) => (
-                      <th key={h} style={{ padding: '10px 12px', color: '#1DB954', fontWeight: 600, whiteSpace: 'nowrap' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {searches.map((s, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #111', verticalAlign: 'top' }}>
-                      <td style={{ padding: '10px 12px', color: '#888', whiteSpace: 'nowrap' }}>
-                        {new Date(s.searched_at).toLocaleString()}
-                      </td>
-                      <td style={{ padding: '10px 12px', fontWeight: 600 }}>{s.input_song}</td>
-                      <td style={{ padding: '10px 12px', color: '#aaa' }}>{s.input_artist}</td>
-                      <td style={{ padding: '10px 12px', color: '#888' }}>{(s.analyze_by || []).join(', ')}</td>
-                      <td style={{ padding: '10px 12px', color: '#888' }}>{s.genre_mode}</td>
-                      <td style={{ padding: '10px 12px', color: '#888' }}>{s.language_filter || '—'}</td>
-                      <td style={{ padding: '10px 12px', color: '#888', maxWidth: '260px' }}>
-                        {(s.suggestions || []).map((sg) => `${sg.title} — ${sg.artist}`).join(', ')}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <div>
+            <p style={{ color: '#8A7E74', marginBottom: 24 }}>{searches.length} searches total</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {searches.map((s, i) => (
+                <div key={i} style={{ background: '#1A1714', border: '1px solid rgba(255,235,210,0.07)', borderRadius: 12, padding: '14px 18px' }}>
+                  <div style={{ fontFamily: "'Bricolage Grotesque', sans-serif", fontWeight: 700, marginBottom: 4 }}>
+                    {s.input_song} — {s.input_artist}
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#8A7E74' }}>
+                    {new Date(s.searched_at).toLocaleString()} · {s.genre_mode} · {s.analyze_by?.join(', ')}
+                  </div>
+                </div>
+              ))}
             </div>
-          </>
+          </div>
         )}
       </div>
     </>

@@ -8,6 +8,44 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
+// ── In-memory rate limiter ──────────────────────────────────────────────────
+// Limits each IP to 8 analyses per 10 minutes.
+// Resets on server restart — acceptable for this use case without Redis.
+const rateLimitMap = new Map();
+const RATE_LIMIT   = 8;
+const RATE_WINDOW  = 10 * 60 * 1000; // 10 minutes
+
+function checkRateLimit(ip) {
+  const now = Date.now();
+  const rec = rateLimitMap.get(ip);
+  if (!rec || now > rec.reset) {
+    rateLimitMap.set(ip, { count: 1, reset: now + RATE_WINDOW });
+    return false; // not limited
+  }
+  if (rec.count >= RATE_LIMIT) return true; // limited
+  rec.count++;
+  return false;
+}
+
+// Prune old entries occasionally to avoid memory leaks
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, rec] of rateLimitMap.entries()) {
+    if (now > rec.reset) rateLimitMap.delete(ip);
+  }
+}, 5 * 60 * 1000);
+
+// ── Input validation ────────────────────────────────────────────────────────
+const VALID_ANALYZE = new Set(['lyrics', 'mood', 'genre', 'tempo']);
+const VALID_GENRE   = new Set(['same', 'explore']);
+
+function sanitizeString(str, maxLen) {
+  if (typeof str !== 'string') return '';
+  // Remove control characters, limit length
+  return str.replace(/[\x00-\x1F\x7F]/g, ' ').trim().slice(0, maxLen);
+}
+
+// ── Spotify helpers ─────────────────────────────────────────────────────────
 async function getSpotifyToken() {
   const creds = Buffer.from(
     `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
@@ -35,34 +73,53 @@ async function searchSpotify(title, artist, token) {
     url: track.external_urls.spotify,
     embedUrl: `https://open.spotify.com/embed/track/${track.id}?utm_source=generator&theme=0`,
     albumArt: track.album?.images?.[0]?.url || null,
-    preview: track.preview_url || null,
   };
 }
 
+// ── Handler ─────────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { song, spotifyUrl, analyzeBy, genreMode, languageFilter } = req.body;
-  if (!song && !spotifyUrl) return res.status(400).json({ error: 'Please provide a song name/artist or a Spotify link.' });
+  // Rate limiting
+  const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
+  if (checkRateLimit(ip)) {
+    return res.status(429).json({ error: 'Too many requests — please wait a few minutes.' });
+  }
 
-  const songInput = song || spotifyUrl;
-  const dimensions = analyzeBy?.length ? analyzeBy.join(', ') : 'lyrics & themes, mood & emotions, genre & style, tempo & energy';
-  const genreInstruction = genreMode === 'same'
+  // Input validation
+  const { song, spotifyUrl, analyzeBy, genreMode, languageFilter } = req.body;
+
+  const cleanSong     = sanitizeString(song || '', 250);
+  const cleanUrl      = sanitizeString(spotifyUrl || '', 250);
+  const cleanLang     = sanitizeString(languageFilter || '', 60);
+  const cleanGenre    = VALID_GENRE.has(genreMode) ? genreMode : 'explore';
+  const cleanAnalyze  = Array.isArray(analyzeBy)
+    ? analyzeBy.filter(x => VALID_ANALYZE.has(x)).slice(0, 4)
+    : ['lyrics', 'mood', 'genre', 'tempo'];
+
+  if (!cleanSong && !cleanUrl) {
+    return res.status(400).json({ error: 'Please provide a song name or Spotify link.' });
+  }
+  if (cleanAnalyze.length === 0) {
+    return res.status(400).json({ error: 'Select at least one analysis dimension.' });
+  }
+
+  const songInput  = cleanSong || cleanUrl;
+  const dimensions = cleanAnalyze.join(', ');
+  const genreInstr = cleanGenre === 'same'
     ? 'Suggestions must stay within the same genre.'
     : 'Cross genre boundaries freely — emotional and sonic match matters more than genre label.';
-  const langInstruction = languageFilter?.trim() ? `Prefer songs in: ${languageFilter.trim()}.` : 'Any language.';
+  const langInstr  = cleanLang ? `Prefer songs in: ${cleanLang}.` : 'Any language.';
 
   try {
-    // ── STEP 1: Extract musical fingerprint ─────────────────────────────────
-    // First call: deeply analyze the song's DNA before we even think about recommendations.
-    // This prevents the model from jumping to obvious "fans also like" associations.
-    const fingerprintCall = await openai.chat.completions.create({
+    // ── Step 1: Extract musical fingerprint ──────────────────────────────
+    const fpCall = await openai.chat.completions.create({
       model: 'gpt-4o',
       max_tokens: 1200,
       messages: [
         {
           role: 'system',
-          content: `You are a music theorist and producer with encyclopedic knowledge of every song ever recorded. Your job is to extract the precise musical fingerprint of a song — not its genre label, but its actual sonic and emotional DNA.
+          content: `You are a music theorist and producer with encyclopedic knowledge of every song ever recorded. Extract the precise musical fingerprint of a song — its actual sonic and emotional DNA.
 
 Return ONLY valid JSON, no markdown, no backticks.
 Schema:
@@ -70,19 +127,19 @@ Schema:
   "title": "corrected song title",
   "artist": "corrected artist name",
   "fingerprint": {
-    "productionStyle": "describe the production in precise terms — reverb levels, instrument textures, mixing choices, era of production, lo-fi vs hi-fi, etc.",
-    "vocalStyle": "describe the vocal delivery, tone, range, technique, and emotional register",
-    "harmonicLanguage": "describe the chord progressions, key, modal tendencies, harmonic tension/resolution patterns",
-    "rhythmicFeel": "describe the tempo, groove, rhythmic complexity, swing, syncopation, percussion style",
-    "lyricApproach": "describe the narrative voice, lyrical density, metaphor style, themes, POV",
-    "emotionalArc": "describe how the song makes the listener feel and why — the emotional journey, tension, release",
-    "uniqueQualities": ["the 3-5 things that make this song distinctly itself — what no other song does exactly the same way"],
-    "avoidSuggesting": ["3-5 obvious/overplayed songs that people always recommend alongside this one — so we can actively avoid them"]
+    "productionStyle": "...",
+    "vocalStyle": "...",
+    "harmonicLanguage": "...",
+    "rhythmicFeel": "...",
+    "lyricApproach": "...",
+    "emotionalArc": "...",
+    "uniqueQualities": ["3-5 things that make this song distinctly itself"],
+    "avoidSuggesting": ["3-5 obvious songs always recommended alongside this one"]
   },
   "analysis": {
-    "summary": "3-4 sentences analyzing the song based on: ${dimensions}. Be specific about musical elements, not just vibes.",
-    "mood": ["specific evocative mood 1", "specific evocative mood 2", "specific evocative mood 3"],
-    "themes": ["specific theme 1", "specific theme 2", "specific theme 3"]
+    "summary": "3-4 sentences analyzing the song based on: ${dimensions}. Be specific about musical elements.",
+    "mood": ["evocative mood 1", "evocative mood 2", "evocative mood 3"],
+    "themes": ["theme 1", "theme 2", "theme 3"]
   }
 }`,
         },
@@ -90,41 +147,38 @@ Schema:
       ],
     });
 
-    const fpRaw = fingerprintCall.choices[0].message.content.trim();
+    const fpRaw = fpCall.choices[0].message.content.trim();
     let fp;
     try { fp = JSON.parse(fpRaw); }
     catch { fp = JSON.parse(fpRaw.replace(/^```json|^```|```$/gm, '').trim()); }
 
-    // ── STEP 2: Find songs that match the fingerprint ────────────────────────
-    // Second call: armed with the fingerprint, find deep matches — not obvious ones.
+    // ── Step 2: Find deep matches ─────────────────────────────────────────
     const recsCall = await openai.chat.completions.create({
       model: 'gpt-4o',
       max_tokens: 2000,
       messages: [
         {
           role: 'system',
-          content: `You are an elite music curator with an obsessive knowledge of deep cuts, hidden gems, and unexpected connections across all genres and eras. You find songs that share a song's soul, not just its surface.
-
-You will receive a musical fingerprint. Your job: find 5 songs that genuinely match this fingerprint on a deep level.
+          content: `You are an elite music curator. Find songs that share a song's soul, not just its surface.
 
 STRICT RULES:
 1. NEVER suggest songs by the same artist as the input song.
-2. NEVER suggest the songs listed in "avoidSuggesting" — these are the boring obvious picks.
-3. At least 2 of your 5 picks must be relatively obscure or underrated — songs that will genuinely surprise the listener.
-4. Each pick must match the fingerprint on at least 3 specific dimensions. Explain exactly which ones and why.
-5. Do NOT rely on genre association. A jazz song and a pop song can share the same emotional fingerprint.
-6. ${genreInstruction}
-7. ${langInstruction}
+2. NEVER suggest the songs listed in "avoidSuggesting".
+3. At least 2 of 5 picks must be underrated or deep cuts.
+4. Each pick must match the fingerprint on at least 3 specific dimensions.
+5. Do NOT rely on genre association alone.
+6. ${genreInstr}
+7. ${langInstr}
 
-Return ONLY valid JSON, no markdown, no backticks.
+Return ONLY valid JSON, no markdown.
 Schema:
 {
   "suggestions": [
     {
       "title": "exact song title",
       "artist": "exact artist name",
-      "reason": "2-3 sentences citing SPECIFIC fingerprint dimensions this song shares with the input. Name the exact qualities — production style, vocal approach, harmonic language, emotional arc, etc. Be precise and surprising.",
-      "moodTags": ["specific evocative tag 1", "specific evocative tag 2", "specific evocative tag 3"],
+      "reason": "2-3 sentences citing SPECIFIC fingerprint dimensions this song shares. Be precise.",
+      "moodTags": ["tag1", "tag2", "tag3"],
       "obscurityLevel": "well-known | underrated | deep cut"
     }
   ]
@@ -143,9 +197,9 @@ Musical fingerprint:
 - Emotional arc: ${fp.fingerprint?.emotionalArc}
 - What makes it unique: ${fp.fingerprint?.uniqueQualities?.join('; ')}
 
-DO NOT suggest these obvious picks: ${fp.fingerprint?.avoidSuggesting?.join(', ')}
+DO NOT suggest: ${fp.fingerprint?.avoidSuggesting?.join(', ')}
 
-Find 5 songs that match this fingerprint on a deep level. Include at least 2 underrated or deep cut picks.`,
+Find 5 songs with at least 2 underrated/deep-cut picks.`,
         },
       ],
     });
@@ -155,34 +209,35 @@ Find 5 songs that match this fingerprint on a deep level. Include at least 2 und
     try { recs = JSON.parse(recsRaw); }
     catch { recs = JSON.parse(recsRaw.replace(/^```json|^```|```$/gm, '').trim()); }
 
-    // ── Spotify enrichment ──────────────────────────────────────────────────
+    // ── Spotify enrichment ────────────────────────────────────────────────
     const token = await getSpotifyToken();
     const [inputSpotify, ...suggestionSpotify] = await Promise.all([
       searchSpotify(fp.title, fp.artist, token),
-      ...recs.suggestions.map((s) => searchSpotify(s.title, s.artist, token)),
+      ...recs.suggestions.map(s => searchSpotify(s.title, s.artist, token)),
     ]);
 
     const finalResult = {
-      inputSong: { title: fp.title, artist: fp.artist, spotify: inputSpotify },
-      analysis: fp.analysis,
+      inputSong:   { title: fp.title, artist: fp.artist, spotify: inputSpotify },
+      analysis:    fp.analysis,
       suggestions: recs.suggestions.map((s, i) => ({ ...s, spotify: suggestionSpotify[i] })),
     };
 
-    // ── Log to Supabase ─────────────────────────────────────────────────────
+    // ── Log to Supabase (fire & forget) ──────────────────────────────────
     supabase.from('searches').insert({
-      input_song: fp.title,
-      input_artist: fp.artist,
-      analyze_by: analyzeBy || [],
-      genre_mode: genreMode || 'explore',
-      language_filter: languageFilter || null,
-      suggestions: recs.suggestions.map((s) => ({ title: s.title, artist: s.artist })),
-    }).then(() => {}).catch((e) => console.warn('Supabase log failed:', e.message));
+      input_song: fp.title, input_artist: fp.artist,
+      analyze_by: cleanAnalyze, genre_mode: cleanGenre,
+      language_filter: cleanLang || null,
+      suggestions: recs.suggestions.map(s => ({ title: s.title, artist: s.artist })),
+    }).then(() => {}).catch(e => console.warn('Supabase log failed:', e.message));
 
     return res.json(finalResult);
+
   } catch (err) {
-    console.error('Error:', err.message);
+    console.error('Analyze error:', err.message);
     return res.status(500).json({
-      error: err.message.includes('Spotify') ? err.message : 'Analysis failed — please try again.',
+      error: err.message.includes('Spotify')
+        ? err.message
+        : 'Analysis failed — please try again.',
     });
   }
 }
