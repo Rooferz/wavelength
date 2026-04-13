@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 
-const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSfky-0X933FGqkqQs4xVo1VdgRIr0wv7h3Xn8rcir7hWGrysw/viewform';
+const GOOGLE_FORM_URL = 'https://forms.gle/YOUR_FORM_LINK_HERE';
 
 const ANALYZE_OPTIONS = [
   { id: 'lyrics', label: 'Lyrics & Meaning', icon: '✍' },
@@ -313,6 +313,48 @@ export default function Home() {
             </div>
           )}
         </main>
+
+        {/* ── Coming Soon Teaser ─────────────────────────── */}
+        <div className="coming-soon-strip">
+          <div className="cs-inner">
+            <div className="cs-eyebrow">✦ What's coming next</div>
+            <h3 className="cs-title">Wavelength is getting a lot bigger.</h3>
+            <div className="cs-features">
+              <div className="cs-feature">
+                <div className="cs-icon">♪</div>
+                <div className="cs-feat-text">
+                  <div className="cs-feat-title">Playlist Discovery</div>
+                  <div className="cs-feat-desc">Connect Spotify. Pick a playlist. AI reads its DNA and surfaces songs you've never heard that were made for your taste.</div>
+                </div>
+              </div>
+              <div className="cs-feature">
+                <div className="cs-icon">◎</div>
+                <div className="cs-feat-text">
+                  <div className="cs-feat-title">Taste Matching</div>
+                  <div className="cs-feat-desc">Find real people on the same wavelength. Not by genre — by musical fingerprint. Your people are out there.</div>
+                </div>
+              </div>
+              <div className="cs-feature">
+                <div className="cs-icon">💬</div>
+                <div className="cs-feat-text">
+                  <div className="cs-feat-title">Music Chat</div>
+                  <div className="cs-feat-desc">When you match with someone, talk to them. Share songs, trade recommendations, connect over what you actually hear.</div>
+                </div>
+              </div>
+            </div>
+            <div className="cs-cta-row">
+              <a
+                href="https://docs.google.com/forms/d/e/1FAIpQLSfky-0X933FGqkqQs4xVo1VdgRIr0wv7h3Xn8rcir7hWGrysw/viewform"
+                target="_blank"
+                rel="noreferrer"
+                className="cs-notify-btn"
+              >
+                ★ Rate the current version &amp; shape what's next
+              </a>
+              <div className="cs-disclaimer">Early users get first access.</div>
+            </div>
+          </div>
+        </div>
 
         <footer className="footer">
           WAVELENGTH · AI Music Discovery · Powered by GPT-4o &amp; Spotify

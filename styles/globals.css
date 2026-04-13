@@ -938,3 +938,127 @@ input { font-family: inherit; }
   .orb-1 { width: 300px; height: 300px; top: -100px; left: -100px; }
   .orb-2 { width: 250px; height: 250px; bottom: -80px; right: -80px; }
 }
+
+/* ── Coming Soon Strip ──────────────────────────────────── */
+.coming-soon-strip {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 72px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(10px);
+}
+
+.cs-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.cs-eyebrow {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fbbf24;
+  margin-bottom: 0.75rem;
+}
+
+.cs-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 2.5rem;
+  line-height: 1.2;
+}
+
+.cs-features {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+  text-align: left;
+}
+
+.cs-feature {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.cs-feature:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.13);
+}
+
+.cs-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.cs-feat-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #fff;
+  margin-bottom: 0.25rem;
+}
+
+.cs-feat-desc {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.5;
+}
+
+.cs-cta-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.cs-notify-btn {
+  display: inline-block;
+  background: linear-gradient(135deg, rgba(251,191,36,0.2), rgba(251,191,36,0.1));
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  color: #fbbf24;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  padding: 0.75rem 1.75rem;
+  border-radius: 100px;
+  transition: all 0.2s;
+}
+
+.cs-notify-btn:hover {
+  background: linear-gradient(135deg, rgba(251,191,36,0.3), rgba(251,191,36,0.18));
+  border-color: rgba(251, 191, 36, 0.65);
+  color: #fbbf24;
+}
+
+.cs-disclaimer {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.3);
+  font-style: italic;
+}
+
+/* Coming soon — mobile */
+@media (max-width: 600px) {
+  .coming-soon-strip { padding: 48px 16px; }
+  .cs-title { font-size: 1.35rem; }
+  .cs-features { grid-template-columns: 1fr; gap: 1rem; }
+  .cs-feature { flex-direction: row; align-items: flex-start; gap: 1rem; padding: 1rem; }
+  .cs-icon { font-size: 1.25rem; flex-shrink: 0; padding-top: 2px; }
+}
