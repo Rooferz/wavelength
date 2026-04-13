@@ -1,5 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
+
+// ── PASTE YOUR GOOGLE FORMS LINK HERE ──────────────────────────────────────
+const GOOGLE_FORM_URL = 'https://forms.gle/YOUR_FORM_LINK_HERE';
+// ───────────────────────────────────────────────────────────────────────────
 
 const ANALYZE_OPTIONS = [
   { id: 'lyrics', label: 'Lyrics & Meaning', icon: '✍' },
@@ -7,6 +11,8 @@ const ANALYZE_OPTIONS = [
   { id: 'genre', label: 'Genre & Style', icon: '◈' },
   { id: 'tempo', label: 'Tempo & Energy', icon: '⚡' },
 ];
+
+const MAX_HISTORY = 20;
 
 export default function Home() {
   const [inputType, setInputType] = useState('name');
@@ -17,6 +23,38 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  // Load history from localStorage
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('wl_history') || '[]');
+      setHistory(saved);
+    } catch {}
+  }, []);
+
+  function saveToHistory(inputSong, analysis) {
+    try {
+      const entry = {
+        title: inputSong.title,
+        artist: inputSong.artist,
+        albumArt: inputSong.spotify?.albumArt || null,
+        summary: analysis.summary,
+        mood: analysis.mood,
+        searchedAt: new Date().toISOString(),
+      };
+      const updated = [entry, ...history].slice(0, MAX_HISTORY);
+      setHistory(updated);
+      localStorage.setItem('wl_history', JSON.stringify(updated));
+    } catch {}
+  }
+
+  function clearHistory() {
+    setHistory([]);
+    localStorage.removeItem('wl_history');
+  }
+
   function toggleAnalyze(id) {
     setAnalyzeBy((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
@@ -30,6 +68,7 @@ export default function Home() {
     setLoading(true);
     setError('');
     setResult(null);
+    setShowHistory(false);
 
     try {
       const body = { analyzeBy, genreMode, languageFilter };
@@ -45,6 +84,7 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Something went wrong.');
       setResult(data);
+      saveToHistory(data.inputSong, data.analysis);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       setError(err.message);
@@ -57,6 +97,13 @@ export default function Home() {
     setResult(null);
     setSongInput('');
     setError('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function loadFromHistory(entry) {
+    setSongInput(`${entry.title} — ${entry.artist}`);
+    setInputType('name');
+    setShowHistory(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -77,7 +124,6 @@ export default function Home() {
       </Head>
 
       <div className="app">
-        {/* Ambient background orbs */}
         <div className="orb orb-1" />
         <div className="orb orb-2" />
         <div className="noise" />
@@ -88,12 +134,44 @@ export default function Home() {
             WAVE<span className="logo-accent">LENGTH</span>
           </div>
           <div className="nav-right">
+            {history.length > 0 && (
+              <button
+                className="history-toggle"
+                onClick={() => setShowHistory((v) => !v)}
+              >
+                {showHistory ? '✕ Close' : `🕐 History (${history.length})`}
+              </button>
+            )}
             <span className="nav-badge">GPT-4o × Spotify</span>
           </div>
         </nav>
 
+        {/* History panel */}
+        {showHistory && (
+          <div className="history-panel">
+            <div className="history-header">
+              <span className="history-title">Recent Searches</span>
+              <button className="history-clear" onClick={clearHistory}>Clear all</button>
+            </div>
+            <div className="history-list">
+              {history.map((h, i) => (
+                <button key={i} className="history-item" onClick={() => loadFromHistory(h)}>
+                  {h.albumArt && <img src={h.albumArt} alt={h.title} className="history-art" />}
+                  <div className="history-meta">
+                    <div className="history-song">{h.title}</div>
+                    <div className="history-artist">{h.artist}</div>
+                  </div>
+                  <span className="history-date">
+                    {new Date(h.searchedAt).toLocaleDateString()}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <main className="main">
-          {/* ── HERO (hidden once we have results) ── */}
+          {/* Hero */}
           {!result && !loading && (
             <section className="hero">
               <div className="hero-eyebrow">✦ AI Music Discovery</div>
@@ -110,11 +188,10 @@ export default function Home() {
             </section>
           )}
 
-          {/* ── FORM ── */}
+          {/* Form */}
           {!result && (
             <section className="form-wrap">
               <form onSubmit={handleSubmit} className="form">
-                {/* Input type toggle */}
                 <div className="pill-toggle">
                   <button
                     type="button"
@@ -132,7 +209,6 @@ export default function Home() {
                   </button>
                 </div>
 
-                {/* Main input */}
                 <div className="input-wrap">
                   <input
                     className="song-input"
@@ -149,7 +225,6 @@ export default function Home() {
                   />
                 </div>
 
-                {/* Analyze by */}
                 <div className="field-group">
                   <div className="field-label">Analyze by</div>
                   <div className="check-grid">
@@ -175,7 +250,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Filters */}
                 <div className="filters-row">
                   <div className="field-group filter-half">
                     <div className="field-label">Genre exploration</div>
@@ -224,10 +298,8 @@ export default function Home() {
             </section>
           )}
 
-          {/* ── ERROR ── */}
           {error && <div className="error-box">⚠ {error}</div>}
 
-          {/* ── LOADING ── */}
           {loading && (
             <div className="loading-state">
               <div className="eq">
@@ -240,18 +312,14 @@ export default function Home() {
             </div>
           )}
 
-          {/* ── RESULTS ── */}
+          {/* Results */}
           {result && !loading && (
             <div className="results">
               {/* Analysis card */}
               <div className="analysis-card">
                 <div className="analysis-inner">
                   {inputSong?.spotify?.albumArt ? (
-                    <img
-                      className="art"
-                      src={inputSong.spotify.albumArt}
-                      alt={inputSong.title}
-                    />
+                    <img className="art" src={inputSong.spotify.albumArt} alt={inputSong.title} />
                   ) : (
                     <div className="art art-placeholder">♪</div>
                   )}
@@ -260,12 +328,7 @@ export default function Home() {
                     <div className="analysis-title">{inputSong?.title}</div>
                     <div className="analysis-artist">{inputSong?.artist}</div>
                     {inputSong?.spotify?.url && (
-                      <a
-                        className="open-spotify"
-                        href={inputSong.spotify.url}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
+                      <a className="open-spotify" href={inputSong.spotify.url} target="_blank" rel="noreferrer">
                         Open in Spotify ↗
                       </a>
                     )}
@@ -282,6 +345,16 @@ export default function Home() {
                     <span key={t} className="tag tag-amber">{t}</span>
                   ))}
                 </div>
+
+                {/* Rate & Review button */}
+                <a
+                  className="rate-btn"
+                  href={GOOGLE_FORM_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  ★ Rate these results
+                </a>
               </div>
 
               {/* Suggestions header */}
@@ -301,12 +374,7 @@ export default function Home() {
                         <div className="card-artist">{s.artist}</div>
                       </div>
                       {s.spotify?.url && (
-                        <a
-                          className="card-spotify-btn"
-                          href={s.spotify.url}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
+                        <a className="card-spotify-btn" href={s.spotify.url} target="_blank" rel="noreferrer">
                           ▶ Open
                         </a>
                       )}
@@ -331,14 +399,13 @@ export default function Home() {
                       />
                     ) : (
                       <div className="no-preview">
-                        🎵 Preview not available on Spotify — <a href={`https://open.spotify.com/search/${encodeURIComponent(s.title + ' ' + s.artist)}`} target="_blank" rel="noreferrer" className="search-spotify">Search on Spotify ↗</a>
+                        🎵 Preview not available — <a href={`https://open.spotify.com/search/${encodeURIComponent(s.title + ' ' + s.artist)}`} target="_blank" rel="noreferrer" className="search-spotify">Search on Spotify ↗</a>
                       </div>
                     )}
                   </div>
                 ))}
               </div>
 
-              {/* New search */}
               <div className="reset-wrap">
                 <button className="reset-btn" onClick={reset}>
                   ← Search Another Song

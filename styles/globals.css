@@ -104,6 +104,25 @@ input { font-family: inherit; }
 }
 .logo-accent { color: var(--green); }
 
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.history-toggle {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-2);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 5px 13px;
+  transition: all 0.2s;
+}
+.history-toggle:hover { border-color: var(--green); color: var(--green); }
+
 .nav-badge {
   font-size: 0.72rem;
   font-weight: 500;
@@ -672,6 +691,112 @@ input { font-family: inherit; }
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── History panel ────────────────────────────────────────────────────────── */
+
+.history-panel {
+  position: relative;
+  z-index: 5;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 16px 24px;
+  animation: fadeUp 0.3s ease;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.history-title {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.history-clear {
+  font-size: 0.72rem;
+  color: var(--text-3);
+  transition: color 0.2s;
+}
+.history-clear:hover { color: #ff6b6b; }
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-align: left;
+  transition: background 0.15s;
+  width: 100%;
+}
+.history-item:hover { background: var(--surface-2); }
+
+.history-art {
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.history-meta { flex: 1; min-width: 0; }
+.history-song {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.history-artist {
+  font-size: 0.78rem;
+  color: var(--text-2);
+}
+.history-date {
+  font-size: 0.72rem;
+  color: var(--text-3);
+  flex-shrink: 0;
+}
+
+/* ── Rate button ──────────────────────────────────────────────────────────── */
+
+.rate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 20px;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--amber);
+  background: var(--amber-dim);
+  border: 1px solid rgba(245, 166, 35, 0.25);
+  border-radius: 100px;
+  padding: 8px 18px;
+  transition: all 0.2s;
+}
+.rate-btn:hover {
+  background: rgba(245, 166, 35, 0.2);
+  transform: translateY(-1px);
 }
 
 /* No preview */
