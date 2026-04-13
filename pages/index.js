@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 
-// ── PASTE YOUR GOOGLE FORMS LINK HERE ──────────────────────────────────────
 const GOOGLE_FORM_URL = 'https://forms.gle/YOUR_FORM_LINK_HERE';
-// ───────────────────────────────────────────────────────────────────────────
 
 const ANALYZE_OPTIONS = [
   { id: 'lyrics', label: 'Lyrics & Meaning', icon: '✍' },
@@ -26,7 +25,6 @@ export default function Home() {
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
 
-  // Load history from localStorage
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('wl_history') || '[]');
@@ -40,8 +38,6 @@ export default function Home() {
         title: inputSong.title,
         artist: inputSong.artist,
         albumArt: inputSong.spotify?.albumArt || null,
-        summary: analysis.summary,
-        mood: analysis.mood,
         searchedAt: new Date().toISOString(),
       };
       const updated = [entry, ...history].slice(0, MAX_HISTORY);
@@ -64,23 +60,19 @@ export default function Home() {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!songInput.trim() || analyzeBy.length === 0) return;
-
     setLoading(true);
     setError('');
     setResult(null);
     setShowHistory(false);
-
     try {
       const body = { analyzeBy, genreMode, languageFilter };
       if (inputType === 'link') body.spotifyUrl = songInput.trim();
       else body.song = songInput.trim();
-
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Something went wrong.');
       setResult(data);
@@ -117,10 +109,7 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap"
-          rel="stylesheet"
-        />
+        <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
       </Head>
 
       <div className="app">
@@ -128,17 +117,13 @@ export default function Home() {
         <div className="orb orb-2" />
         <div className="noise" />
 
-        {/* Nav */}
         <nav className="nav">
-          <div className="logo">
+          <Link href="/" className="logo">
             WAVE<span className="logo-accent">LENGTH</span>
-          </div>
+          </Link>
           <div className="nav-right">
             {history.length > 0 && (
-              <button
-                className="history-toggle"
-                onClick={() => setShowHistory((v) => !v)}
-              >
+              <button className="history-toggle" onClick={() => setShowHistory((v) => !v)}>
                 {showHistory ? '✕ Close' : `🕐 History (${history.length})`}
               </button>
             )}
@@ -146,7 +131,6 @@ export default function Home() {
           </div>
         </nav>
 
-        {/* History panel */}
         {showHistory && (
           <div className="history-panel">
             <div className="history-header">
@@ -161,9 +145,7 @@ export default function Home() {
                     <div className="history-song">{h.title}</div>
                     <div className="history-artist">{h.artist}</div>
                   </div>
-                  <span className="history-date">
-                    {new Date(h.searchedAt).toLocaleDateString()}
-                  </span>
+                  <span className="history-date">{new Date(h.searchedAt).toLocaleDateString()}</span>
                 </button>
               ))}
             </div>
@@ -171,42 +153,26 @@ export default function Home() {
         )}
 
         <main className="main">
-          {/* Hero */}
           {!result && !loading && (
             <section className="hero">
               <div className="hero-eyebrow">✦ AI Music Discovery</div>
               <h1 className="hero-title">
-                Decode any song.
-                <br />
+                Decode any song.<br />
                 <em>Discover your next obsession.</em>
               </h1>
               <p className="hero-sub">
-                Enter any song. Choose what to analyze — lyrics, mood, genre, energy.
-                <br />
+                Enter any song. Choose what to analyze — lyrics, mood, genre, energy.<br />
                 We'll surface 5 songs that truly resonate.
               </p>
             </section>
           )}
 
-          {/* Form */}
           {!result && (
             <section className="form-wrap">
               <form onSubmit={handleSubmit} className="form">
                 <div className="pill-toggle">
-                  <button
-                    type="button"
-                    className={`pill-btn ${inputType === 'name' ? 'pill-active' : ''}`}
-                    onClick={() => setInputType('name')}
-                  >
-                    Song Name
-                  </button>
-                  <button
-                    type="button"
-                    className={`pill-btn ${inputType === 'link' ? 'pill-active' : ''}`}
-                    onClick={() => setInputType('link')}
-                  >
-                    Spotify Link
-                  </button>
+                  <button type="button" className={`pill-btn ${inputType === 'name' ? 'pill-active' : ''}`} onClick={() => setInputType('name')}>Song Name</button>
+                  <button type="button" className={`pill-btn ${inputType === 'link' ? 'pill-active' : ''}`} onClick={() => setInputType('link')}>Spotify Link</button>
                 </div>
 
                 <div className="input-wrap">
@@ -215,11 +181,7 @@ export default function Home() {
                     type="text"
                     value={songInput}
                     onChange={(e) => setSongInput(e.target.value)}
-                    placeholder={
-                      inputType === 'name'
-                        ? 'e.g.  Blinding Lights — The Weeknd'
-                        : 'Paste Spotify track URL…'
-                    }
+                    placeholder={inputType === 'name' ? 'e.g.  Blinding Lights — The Weeknd' : 'Paste Spotify track URL…'}
                     autoFocus
                     required
                   />
@@ -231,16 +193,8 @@ export default function Home() {
                     {ANALYZE_OPTIONS.map((opt) => {
                       const checked = analyzeBy.includes(opt.id);
                       return (
-                        <label
-                          key={opt.id}
-                          className={`check-card ${checked ? 'check-active' : ''}`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleAnalyze(opt.id)}
-                            hidden
-                          />
+                        <label key={opt.id} className={`check-card ${checked ? 'check-active' : ''}`}>
+                          <input type="checkbox" checked={checked} onChange={() => toggleAnalyze(opt.id)} hidden />
                           <span className="check-mark">{checked ? '✓' : ''}</span>
                           <span className="check-icon">{opt.icon}</span>
                           <span className="check-label">{opt.label}</span>
@@ -254,44 +208,19 @@ export default function Home() {
                   <div className="field-group filter-half">
                     <div className="field-label">Genre exploration</div>
                     <div className="pill-toggle small">
-                      <button
-                        type="button"
-                        className={`pill-btn ${genreMode === 'same' ? 'pill-active' : ''}`}
-                        onClick={() => setGenreMode('same')}
-                      >
-                        Same genre
-                      </button>
-                      <button
-                        type="button"
-                        className={`pill-btn ${genreMode === 'explore' ? 'pill-active' : ''}`}
-                        onClick={() => setGenreMode('explore')}
-                      >
-                        Explore broadly
-                      </button>
+                      <button type="button" className={`pill-btn ${genreMode === 'same' ? 'pill-active' : ''}`} onClick={() => setGenreMode('same')}>Same genre</button>
+                      <button type="button" className={`pill-btn ${genreMode === 'explore' ? 'pill-active' : ''}`} onClick={() => setGenreMode('explore')}>Explore broadly</button>
                     </div>
                   </div>
-
                   <div className="field-group filter-half">
                     <div className="field-label">Language preference <span className="opt">(optional)</span></div>
-                    <input
-                      className="lang-input"
-                      type="text"
-                      value={languageFilter}
-                      onChange={(e) => setLanguageFilter(e.target.value)}
-                      placeholder="e.g. Spanish, Korean…"
-                    />
+                    <input className="lang-input" type="text" value={languageFilter} onChange={(e) => setLanguageFilter(e.target.value)} placeholder="e.g. Spanish, Korean…" />
                   </div>
                 </div>
 
-                {analyzeBy.length === 0 && (
-                  <p className="warn">Please select at least one analysis dimension.</p>
-                )}
+                {analyzeBy.length === 0 && <p className="warn">Please select at least one analysis dimension.</p>}
 
-                <button
-                  type="submit"
-                  className="submit-btn"
-                  disabled={loading || !songInput.trim() || analyzeBy.length === 0}
-                >
+                <button type="submit" className="submit-btn" disabled={loading || !songInput.trim() || analyzeBy.length === 0}>
                   ✦ Analyze &amp; Discover
                 </button>
               </form>
@@ -312,10 +241,8 @@ export default function Home() {
             </div>
           )}
 
-          {/* Results */}
           {result && !loading && (
             <div className="results">
-              {/* Analysis card */}
               <div className="analysis-card">
                 <div className="analysis-inner">
                   {inputSong?.spotify?.albumArt ? (
@@ -328,9 +255,7 @@ export default function Home() {
                     <div className="analysis-title">{inputSong?.title}</div>
                     <div className="analysis-artist">{inputSong?.artist}</div>
                     {inputSong?.spotify?.url && (
-                      <a className="open-spotify" href={inputSong.spotify.url} target="_blank" rel="noreferrer">
-                        Open in Spotify ↗
-                      </a>
+                      <a className="open-spotify" href={inputSong.spotify.url} target="_blank" rel="noreferrer">Open in Spotify ↗</a>
                     )}
                   </div>
                 </div>
@@ -338,32 +263,20 @@ export default function Home() {
                 <p className="analysis-summary">{analysis?.summary}</p>
 
                 <div className="tag-row">
-                  {analysis?.mood?.map((m) => (
-                    <span key={m} className="tag tag-green">{m}</span>
-                  ))}
-                  {analysis?.themes?.map((t) => (
-                    <span key={t} className="tag tag-amber">{t}</span>
-                  ))}
+                  {analysis?.mood?.map((m) => <span key={m} className="tag tag-green">{m}</span>)}
+                  {analysis?.themes?.map((t) => <span key={t} className="tag tag-amber">{t}</span>)}
                 </div>
 
-                {/* Rate & Review button */}
-                <a
-                  className="rate-btn"
-                  href={GOOGLE_FORM_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                >
+                <a className="rate-btn" href={GOOGLE_FORM_URL} target="_blank" rel="noreferrer">
                   ★ Rate these results
                 </a>
               </div>
 
-              {/* Suggestions header */}
               <div className="recs-header">
                 <h2 className="recs-title">5 Recommendations</h2>
                 <div className="recs-meta">Based on your analysis · {genreMode === 'same' ? 'Same genre' : 'Cross-genre'}</div>
               </div>
 
-              {/* Song cards */}
               <div className="song-list">
                 {suggestions?.map((s, i) => (
                   <div key={i} className="song-card">
@@ -374,29 +287,15 @@ export default function Home() {
                         <div className="card-artist">{s.artist}</div>
                       </div>
                       {s.spotify?.url && (
-                        <a className="card-spotify-btn" href={s.spotify.url} target="_blank" rel="noreferrer">
-                          ▶ Open
-                        </a>
+                        <a className="card-spotify-btn" href={s.spotify.url} target="_blank" rel="noreferrer">▶ Open</a>
                       )}
                     </div>
-
                     <p className="card-reason">{s.reason}</p>
-
                     <div className="tag-row">
-                      {s.moodTags?.map((t) => (
-                        <span key={t} className="tag tag-dim">{t}</span>
-                      ))}
+                      {s.moodTags?.map((t) => <span key={t} className="tag tag-dim">{t}</span>)}
                     </div>
-
                     {s.spotify?.embedUrl ? (
-                      <iframe
-                        className="embed"
-                        src={s.spotify.embedUrl}
-                        frameBorder="0"
-                        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                        loading="lazy"
-                        title={`${s.title} by ${s.artist}`}
-                      />
+                      <iframe className="embed" src={s.spotify.embedUrl} frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" title={`${s.title} by ${s.artist}`} />
                     ) : (
                       <div className="no-preview">
                         🎵 Preview not available — <a href={`https://open.spotify.com/search/${encodeURIComponent(s.title + ' ' + s.artist)}`} target="_blank" rel="noreferrer" className="search-spotify">Search on Spotify ↗</a>
@@ -407,9 +306,7 @@ export default function Home() {
               </div>
 
               <div className="reset-wrap">
-                <button className="reset-btn" onClick={reset}>
-                  ← Search Another Song
-                </button>
+                <button className="reset-btn" onClick={reset}>← Search Another Song</button>
               </div>
             </div>
           )}
