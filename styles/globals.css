@@ -778,25 +778,34 @@ input { font-family: inherit; }
 
 /* ── Rate button ──────────────────────────────────────────────────────────── */
 
+.rate-btn-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
 .rate-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 20px;
+  gap: 8px;
   font-family: var(--font-display);
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--amber);
-  background: var(--amber-dim);
-  border: 1px solid rgba(245, 166, 35, 0.25);
+  letter-spacing: 0.08em;
+  color: #000;
+  background: var(--amber);
+  border: none;
   border-radius: 100px;
-  padding: 8px 18px;
+  padding: 12px 28px;
   transition: all 0.2s;
+  box-shadow: 0 4px 20px rgba(245, 166, 35, 0.35);
 }
 .rate-btn:hover {
-  background: rgba(245, 166, 35, 0.2);
-  transform: translateY(-1px);
+  background: #f7b93a;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(245, 166, 35, 0.5);
 }
 
 /* No preview */

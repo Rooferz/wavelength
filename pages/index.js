@@ -118,7 +118,7 @@ export default function Home() {
         <div className="noise" />
 
         <nav className="nav">
-          <Link href="/" className="logo">
+          <Link href="/" className="logo" onClick={() => { setResult(null); setError(''); setSongInput(''); }}>
             WAVE<span className="logo-accent">LENGTH</span>
           </Link>
           <div className="nav-right">
@@ -267,9 +267,11 @@ export default function Home() {
                   {analysis?.themes?.map((t) => <span key={t} className="tag tag-amber">{t}</span>)}
                 </div>
 
-                <a className="rate-btn" href={GOOGLE_FORM_URL} target="_blank" rel="noreferrer">
-                  ★ Rate these results
-                </a>
+                <div className="rate-btn-wrap">
+                  <a className="rate-btn" href={GOOGLE_FORM_URL} target="_blank" rel="noreferrer">
+                    ★ Rate these results
+                  </a>
+                </div>
               </div>
 
               <div className="recs-header">
