@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 
-const GOOGLE_FORM_URL = 'https://forms.gle/YOUR_FORM_LINK_HERE';
+const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSfky-0X933FGqkqQs4xVo1VdgRIr0wv7h3Xn8rcir7hWGrysw/viewform';
 
 const ANALYZE_OPTIONS = [
   { id: 'lyrics', label: 'Lyrics & Meaning', icon: '✍' },
