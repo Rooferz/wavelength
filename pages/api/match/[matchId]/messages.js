@@ -1,5 +1,5 @@
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../auth/[...nextauth]';
+import { authOptions } from '../../auth/[...nextauth]';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -15,10 +15,10 @@ export default async function handler(req, res) {
 
   // Verify user belongs to this match
   const { data: match } = await supabase
-    .from('matches')
-    .select('*')
-    .eq('id', matchId)
-    .single();
+  .from('matches')
+  .select('*')
+  .eq('id', matchId)
+  .single();
 
   if (!match) return res.status(404).json({ error: 'Match not found' });
   if (match.user_a !== session.spotifyId && match.user_b !== session.spotifyId) {
@@ -27,11 +27,11 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     const { data: messages } = await supabase
-      .from('messages')
-      .select('id, content, sender_id, created_at')
-      .eq('match_id', matchId)
-      .order('created_at', { ascending: true })
-      .limit(100);
+    .from('messages')
+    .select('id, content, sender_id, created_at')
+    .eq('match_id', matchId)
+    .order('created_at', { ascending: true })
+    .limit(100);
 
     return res.json({ messages: messages || [] });
   }
@@ -41,14 +41,14 @@ export default async function handler(req, res) {
     if (!content?.trim()) return res.status(400).json({ error: 'Empty message' });
 
     const { data: msg, error } = await supabase
-      .from('messages')
-      .insert({
-        match_id: matchId,
-        sender_id: session.spotifyId,
-        content: content.trim(),
-      })
-      .select()
-      .single();
+    .from('messages')
+    .insert({
+      match_id: matchId,
+      sender_id: session.spotifyId,
+      content: content.trim(),
+    })
+    .select()
+    .single();
 
     if (error) return res.status(500).json({ error: error.message });
     return res.json({ message: msg });
