@@ -131,7 +131,7 @@ export default function ProfilePage() {
                           : <div className="playlist-thumb-placeholder">♫</div>
                         }
                         <div className="playlist-name">{pl.name}</div>
-                        <div className="playlist-count">{pl.tracks?.total ?? '—'} tracks</div>
+                        <div className="playlist-count">{pl.trackCount ?? '—'} tracks</div>
                       </button>
                     ))}
                   </div>
