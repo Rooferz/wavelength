@@ -126,10 +126,10 @@ export default function ProfilePage() {
                         className={`playlist-card${selected?.id === pl.id ? ' selected' : ''}`}
                         onClick={() => setSelected(selected?.id === pl.id ? null : pl)}
                       >
-                        {pl.images?.[0]?.url
-                          ? <img src={pl.images[0].url} alt={pl.name} className="playlist-thumb" />
-                          : <div className="playlist-thumb-placeholder">♫</div>
-                        }
+                      {pl.image
+                        ? <img src={pl.image} alt={pl.name} className="playlist-thumb" />
+                        : <div className="playlist-thumb-placeholder">♫</div>
+                      }
                         <div className="playlist-name">{pl.name}</div>
                         <div className="playlist-count">{pl.trackCount ?? '—'} tracks</div>
                       </button>
