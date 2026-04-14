@@ -48,8 +48,10 @@ export default async function handler(req, res) {
   if (!playlistId) return res.status(400).json({ error: 'No playlist ID provided' });
 
   try {
+    // Get app token once and reuse it throughout
+    const appToken = await getSpotifyToken();
+
     // 1. Fetch playlist tracks from Spotify (up to 50)
-    const appToken = await getSpotifyToken(); // already exists in the file
     const tracksRes = await fetch(
       `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=50`,
       { headers: { Authorization: `Bearer ${appToken}` } }
@@ -60,13 +62,13 @@ export default async function handler(req, res) {
     }
     const tracksData = await tracksRes.json();
     const tracks = (tracksData.items || [])
-      .filter((i) => i.track?.name)
-      .map((i) => ({
-        title: i.track.name,
-        artist: i.track.artists?.[0]?.name || 'Unknown',
-        album: i.track.album?.name || '',
-      }))
-      .slice(0, 40); // Cap at 40 for prompt size
+    .filter((i) => i.track?.name)
+    .map((i) => ({
+      title: i.track.name,
+      artist: i.track.artists?.[0]?.name || 'Unknown',
+      album: i.track.album?.name || '',
+    }))
+    .slice(0, 40);
 
     if (tracks.length < 3) {
       return res.status(400).json({ error: 'Playlist needs at least 3 songs to analyze.' });
@@ -84,25 +86,25 @@ export default async function handler(req, res) {
           role: 'system',
           content: `You are a music theorist analyzing a person's music taste from their playlist. Extract the collective musical fingerprint — not what's obvious, but what connects these songs at a deep level.
 
-Return ONLY valid JSON, no markdown, no backticks.
-Schema:
-{
-  "fingerprint": {
-    "dominantMoods": ["mood1", "mood2", "mood3"],
-    "productionEra": "describe the era and production aesthetic that defines this collection",
-    "vocalPreference": "describe the vocal styles this person seems drawn to",
-    "rhythmicTendency": "describe the tempo and groove patterns across the playlist",
-    "lyricDepth": "describe the lyrical complexity and themes this person gravitates toward",
-    "emotionalRange": "describe the emotional spectrum — is this person consistent or varied?",
-    "uniqueInsight": "one surprising observation about what truly connects these songs at a deep level",
-    "genreDNA": ["genre1", "genre2", "genre3"],
-    "avoidSuggesting": ["list 5 obvious songs people always suggest to fans of this collection — so we avoid them"]
-  },
-  "tasteProfile": {
-    "headline": "A 1-sentence punchy description of this person's music taste",
-    "summary": "3-4 sentences describing what drives this person's music choices, what they're clearly searching for in music, and what makes their taste distinctive"
-  }
-}`,
+          Return ONLY valid JSON, no markdown, no backticks.
+          Schema:
+          {
+            "fingerprint": {
+              "dominantMoods": ["mood1", "mood2", "mood3"],
+              "productionEra": "describe the era and production aesthetic that defines this collection",
+              "vocalPreference": "describe the vocal styles this person seems drawn to",
+              "rhythmicTendency": "describe the tempo and groove patterns across the playlist",
+              "lyricDepth": "describe the lyrical complexity and themes this person gravitates toward",
+              "emotionalRange": "describe the emotional spectrum — is this person consistent or varied?",
+              "uniqueInsight": "one surprising observation about what truly connects these songs at a deep level",
+              "genreDNA": ["genre1", "genre2", "genre3"],
+              "avoidSuggesting": ["list 5 obvious songs people always suggest to fans of this collection — so we avoid them"]
+            },
+            "tasteProfile": {
+              "headline": "A 1-sentence punchy description of this person's music taste",
+              "summary": "3-4 sentences describing what drives this person's music choices, what they're clearly searching for in music, and what makes their taste distinctive"
+            }
+          }`,
         },
         {
           role: 'user',
@@ -116,7 +118,7 @@ Schema:
     try { fp = JSON.parse(fpRaw); }
     catch { fp = JSON.parse(fpRaw.replace(/^```json|^```|```$/gm, '').trim()); }
 
-    // 3. AI: Suggest new songs based on fingerprint (that aren't already in the playlist)
+    // 3. AI: Suggest new songs based on fingerprint
     const recsCall = await openai.chat.completions.create({
       model: 'gpt-4o',
       max_tokens: 2000,
@@ -125,46 +127,46 @@ Schema:
           role: 'system',
           content: `You are an elite music curator who finds songs that feel like they were made for a specific person's taste. You find genuine discoveries — songs that match someone's musical DNA but they've likely never heard.
 
-STRICT RULES:
-1. NEVER suggest songs already in the playlist.
-2. NEVER suggest the songs in "avoidSuggesting" — those are the boring obvious picks.
-3. At least 3 of your 6 picks should be underrated or deep cuts — genuine discoveries.
-4. Each pick must match the fingerprint on at least 3 specific dimensions. Be precise.
-5. Find songs that feel inevitable for this person — like they were always supposed to find them.
+          STRICT RULES:
+          1. NEVER suggest songs already in the playlist.
+          2. NEVER suggest the songs in "avoidSuggesting" — those are the boring obvious picks.
+          3. At least 3 of your 6 picks should be underrated or deep cuts — genuine discoveries.
+          4. Each pick must match the fingerprint on at least 3 specific dimensions. Be precise.
+          5. Find songs that feel inevitable for this person — like they were always supposed to find them.
 
-Return ONLY valid JSON, no markdown, no backticks.
-Schema:
-{
-  "suggestions": [
-    {
-      "title": "exact song title",
-      "artist": "exact artist name",
-      "reason": "2-3 sentences explaining why this song fits this specific person's taste profile — reference their actual fingerprint qualities",
-      "moodTags": ["tag1", "tag2", "tag3"],
-      "obscurityLevel": "well-known | underrated | deep cut",
-      "whyTheyHaventHeardIt": "one sentence on why this is a genuine discovery for them"
-    }
-  ]
-}`,
+          Return ONLY valid JSON, no markdown, no backticks.
+          Schema:
+          {
+            "suggestions": [
+              {
+                "title": "exact song title",
+                "artist": "exact artist name",
+                "reason": "2-3 sentences explaining why this song fits this specific person's taste profile — reference their actual fingerprint qualities",
+                "moodTags": ["tag1", "tag2", "tag3"],
+                "obscurityLevel": "well-known | underrated | deep cut",
+                "whyTheyHaventHeardIt": "one sentence on why this is a genuine discovery for them"
+              }
+            ]
+          }`,
         },
         {
           role: 'user',
           content: `This person's taste fingerprint:
-- Dominant moods: ${fp.fingerprint?.dominantMoods?.join(', ')}
-- Production era: ${fp.fingerprint?.productionEra}
-- Vocal preference: ${fp.fingerprint?.vocalPreference}
-- Rhythmic tendency: ${fp.fingerprint?.rhythmicTendency}
-- Lyric depth: ${fp.fingerprint?.lyricDepth}
-- Emotional range: ${fp.fingerprint?.emotionalRange}
-- Unique insight: ${fp.fingerprint?.uniqueInsight}
-- Genre DNA: ${fp.fingerprint?.genreDNA?.join(', ')}
+          - Dominant moods: ${fp.fingerprint?.dominantMoods?.join(', ')}
+          - Production era: ${fp.fingerprint?.productionEra}
+          - Vocal preference: ${fp.fingerprint?.vocalPreference}
+          - Rhythmic tendency: ${fp.fingerprint?.rhythmicTendency}
+          - Lyric depth: ${fp.fingerprint?.lyricDepth}
+          - Emotional range: ${fp.fingerprint?.emotionalRange}
+          - Unique insight: ${fp.fingerprint?.uniqueInsight}
+          - Genre DNA: ${fp.fingerprint?.genreDNA?.join(', ')}
 
-Songs ALREADY in their playlist (do NOT suggest these):
-${trackList}
+          Songs ALREADY in their playlist (do NOT suggest these):
+          ${trackList}
 
-Do NOT suggest these obvious picks: ${fp.fingerprint?.avoidSuggesting?.join(', ')}
+          Do NOT suggest these obvious picks: ${fp.fingerprint?.avoidSuggesting?.join(', ')}
 
-Find 6 songs that feel like inevitable discoveries for this person.`,
+          Find 6 songs that feel like inevitable discoveries for this person.`,
         },
       ],
     });
@@ -174,8 +176,7 @@ Find 6 songs that feel like inevitable discoveries for this person.`,
     try { recs = JSON.parse(recsRaw); }
     catch { recs = JSON.parse(recsRaw.replace(/^```json|^```|```$/gm, '').trim()); }
 
-    // 4. Spotify enrichment for suggestions
-    const appToken = await getSpotifyToken();
+    // 4. Spotify enrichment for suggestions (reuse the same appToken)
     const spotifyResults = await Promise.all(
       recs.suggestions.map((s) => searchSpotify(s.title, s.artist, appToken))
     );
@@ -198,7 +199,7 @@ Find 6 songs that feel like inevitable discoveries for this person.`,
       tasteProfile: fp.tasteProfile,
       fingerprint: fp.fingerprint,
       suggestions: recs.suggestions.map((s, i) => ({ ...s, spotify: spotifyResults[i] })),
-      tracksAnalyzed: tracks.length,
+                    tracksAnalyzed: tracks.length,
     });
   } catch (err) {
     console.error('Playlist analysis error:', err.message);
