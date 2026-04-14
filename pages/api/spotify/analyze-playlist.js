@@ -55,7 +55,6 @@ export default async function handler(req, res) {
     );
     if (!tracksRes.ok) {
       const spotifyErr = await tracksRes.json();
-      console.error('Spotify tracks fetch failed:', spotifyErr);
       return res.status(502).json({ error: `Spotify error: ${spotifyErr?.error?.message || tracksRes.status}` });
     }
     const tracksData = await tracksRes.json();
