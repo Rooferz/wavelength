@@ -49,9 +49,10 @@ export default async function handler(req, res) {
 
   try {
     // 1. Fetch playlist tracks from Spotify (up to 50)
+    const appToken = await getSpotifyToken(); // already exists in the file
     const tracksRes = await fetch(
       `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=50`,
-      { headers: { Authorization: `Bearer ${session.accessToken}` } }
+      { headers: { Authorization: `Bearer ${appToken}` } }
     );
     if (!tracksRes.ok) {
       const spotifyErr = await tracksRes.json();
