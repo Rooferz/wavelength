@@ -53,6 +53,11 @@ export default async function handler(req, res) {
       `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=50`,
       { headers: { Authorization: `Bearer ${session.accessToken}` } }
     );
+    if (!tracksRes.ok) {
+      const spotifyErr = await tracksRes.json();
+      console.error('Spotify tracks fetch failed:', spotifyErr);
+      return res.status(502).json({ error: `Spotify error: ${spotifyErr?.error?.message || tracksRes.status}` });
+    }
     const tracksData = await tracksRes.json();
     const tracks = (tracksData.items || [])
       .filter((i) => i.track?.name)
