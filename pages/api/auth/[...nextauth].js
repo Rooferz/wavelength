@@ -3,11 +3,11 @@ import SpotifyProvider from 'next-auth/providers/spotify';
 
 const SPOTIFY_SCOPES = [
   'user-read-private',
-  'user-read-email',
-  'playlist-read-private',
-  'playlist-read-collaborative',
-  'user-top-read',
-  'user-library-read',
+'user-read-email',
+'playlist-read-private',
+'playlist-read-collaborative',
+'user-top-read',
+'user-library-read',
 ].join(' ');
 
 export const authOptions = {
@@ -16,7 +16,10 @@ export const authOptions = {
       clientId: process.env.SPOTIFY_CLIENT_ID,
       clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
       authorization: {
-        params: { scope: SPOTIFY_SCOPES },
+        params: {
+          scope: SPOTIFY_SCOPES,
+          show_dialog: true,
+        },
       },
     }),
   ],
@@ -31,9 +34,7 @@ export const authOptions = {
         token.displayName = profile.display_name;
         token.avatar = profile.images?.[0]?.url || null;
       }
-      // Still valid
       if (Date.now() < token.expiresAt * 1000) return token;
-      // Refresh expired token
       try {
         const r = await fetch('https://accounts.spotify.com/api/token', {
           method: 'POST',
